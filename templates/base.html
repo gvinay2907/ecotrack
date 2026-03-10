@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoTrack Pro — Citizen Environmental Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+#pageTransition{position:fixed;inset:0;background:var(--bg);z-index:9998;pointer-events:none;opacity:0;}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:-1;}
+.orb-1{width:420px;height:420px;background:radial-gradient(circle,rgba(6,255,165,0.06),transparent);bottom:-100px;left:var(--sidebar);animation:orbDrift 22s ease-in-out infinite alternate;}
+.orb-2{width:360px;height:360px;background:radial-gradient(circle,rgba(0,212,255,0.05),transparent);top:-80px;right:0;animation:orbDrift 18s ease-in-out infinite alternate;animation-delay:-9s;}
+@keyframes orbDrift{0%{transform:translate(0,0) scale(1);}100%{transform:translate(40px,30px) scale(1.1);}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     MULTILINGUAL SYSTEM — 6 Languages
+     ═══════════════════════════════════════════ -->
+<script>
+const LANGS={
+  en:{
+    dashboard:"Dashboard",analytics:"Analytics",sdg:"SDG Impact",wallet:"Carbon Wallet",
+    weekly:"Weekly Report",leaderboard:"Leaderboard",profile:"Profile",logout:"Logout",
+    ecopoints:"Eco Points",loading:"Loading EcoTrack",nav_platform:"Platform",
+    nav_tracking:"Tracking",nav_account:"Account",pdf:"PDF Report",keepgoing:"Keep going! 🌿",
+    logimpact:"Log Your Impact",manual:"Manual Entry",aiphoto:"AI Photo",bill:"Upload Bill",
+    analyze:"Analyze My Impact",submit:"Submit",uploading:"Uploading...",
+    billparsed:"Bill Parsed!",billreview:"Review & correct values if needed",
+    challenges:"Weekly Challenges",aisuggestions:"AI Suggestions",
+    winner_title:"You Won!",loser_title:"Keep Pushing!",
+    rank1:"You reached #1!",tryagain:"Log more data to improve your rank"
+  },
+  hi:{
+    dashboard:"डैशबोर्ड",analytics:"विश्लेषण",sdg:"SDG प्रभाव",wallet:"कार्बन वॉलेट",
+    weekly:"साप्ताहिक रिपोर्ट",leaderboard:"लीडरबोर्ड",profile:"प्रोफ़ाइल",logout:"लॉग आउट",
+    ecopoints:"इको पॉइंट्स",loading:"लोड हो रहा है",nav_platform:"प्लेटफ़ॉर्म",
+    nav_tracking:"ट्रैकिंग",nav_account:"खाता",pdf:"PDF रिपोर्ट",keepgoing:"जारी रखें! 🌿",
+    logimpact:"अपना प्रभाव लॉग करें",manual:"मैन्युअल",aiphoto:"AI फोटो",bill:"बिल अपलोड",
+    analyze:"प्रभाव विश्लेषण करें",submit:"जमा करें",uploading:"अपलोड हो रहा है...",
+    billparsed:"बिल पढ़ा गया!",billreview:"मान सत्यापित करें",
+    challenges:"साप्ताहिक चुनौतियाँ",aisuggestions:"AI सुझाव",
+    winner_title:"आप जीत गए!",loser_title:"कोशिश जारी रखें!",
+    rank1:"आपने #1 हासिल किया!",tryagain:"रैंक सुधारने के लिए डेटा लॉग करें"
+  },
+  ta:{
+    dashboard:"டாஷ்போர்டு",analytics:"பகுப்பாய்வு",sdg:"SDG தாக்கம்",wallet:"கார்பன் வாலட்",
+    weekly:"வாராந்திர அறிக்கை",leaderboard:"லீடர்போர்டு",profile:"சுயவிவரம்",logout:"வெளியேறு",
+    ecopoints:"இக்கோ புள்ளிகள்",loading:"ஏற்றுகிறது",nav_platform:"தளம்",
+    nav_tracking:"கண்காணிப்பு",nav_account:"கணக்கு",pdf:"PDF அறிக்கை",keepgoing:"தொடர்க! 🌿",
+    logimpact:"உங்கள் தாக்கத்தை பதிவு செய்",manual:"கைமுறை",aiphoto:"AI புகைப்படம்",bill:"மசோதா பதிவேற்று",
+    analyze:"தாக்கம் பகுப்பாய்",submit:"சமர்பிக்கவும்",uploading:"பதிவேற்றுகிறது...",
+    billparsed:"மசோதா படிக்கப்பட்டது!",billreview:"மதிப்புகளை சரிபார்க்கவும்",
+    challenges:"வாராந்திர சவால்கள்",aisuggestions:"AI ஆலோசனைகள்",
+    winner_title:"நீங்கள் வெற்றி பெற்றீர்கள்!",loser_title:"முயற்சியை தொடருங்கள்!",
+    rank1:"#1 அடைந்தீர்கள்!",tryagain:"தரவை பதிவு செய்து தரவரிசையை மேம்படுத்துங்கள்"
+  },
+  es:{
+    dashboard:"Panel",analytics:"Analíticas",sdg:"Impacto ODS",wallet:"Cartera de Carbono",
+    weekly:"Informe Semanal",leaderboard:"Clasificación",profile:"Perfil",logout:"Cerrar Sesión",
+    ecopoints:"Puntos Eco",loading:"Cargando EcoTrack",nav_platform:"Plataforma",
+    nav_tracking:"Seguimiento",nav_account:"Cuenta",pdf:"Informe PDF",keepgoing:"¡Sigue así! 🌿",
+    logimpact:"Registra tu Impacto",manual:"Manual",aiphoto:"IA Foto",bill:"Subir Factura",
+    analyze:"Analizar Impacto",submit:"Enviar",uploading:"Subiendo...",
+    billparsed:"¡Factura Leída!",billreview:"Revisa y corrige si es necesario",
+    challenges:"Desafíos Semanales",aisuggestions:"Sugerencias IA",
+    winner_title:"¡Ganaste!",loser_title:"¡Sigue Intentando!",
+    rank1:"¡Alcanzaste el #1!",tryagain:"Registra más datos para mejorar"
+  },
+  zh:{
+    dashboard:"仪表板",analytics:"数据分析",sdg:"SDG影响",wallet:"碳钱包",
+    weekly:"周报",leaderboard:"排行榜",profile:"档案",logout:"退出",
+    ecopoints:"生态积分",loading:"正在加载",nav_platform:"平台",
+    nav_tracking:"追踪",nav_account:"账户",pdf:"PDF报告",keepgoing:"继续加油！🌿",
+    logimpact:"记录您的影响",manual:"手动输入",aiphoto:"AI照片",bill:"上传账单",
+    analyze:"分析影响",submit:"提交",uploading:"上传中...",
+    billparsed:"账单已解析！",billreview:"请检查并修正数值",
+    challenges:"每周挑战",aisuggestions:"AI建议",
+    winner_title:"您获胜了！",loser_title:"继续努力！",
+    rank1:"您达到了第一名！",tryagain:"记录更多数据以提高排名"
+  },
+  ar:{
+    dashboard:"لوحة القيادة",analytics:"التحليلات",sdg:"تأثير SDG",wallet:"محفظة الكربون",
+    weekly:"التقرير الأسبوعي",leaderboard:"لوحة المتصدرين",profile:"الملف الشخصي",logout:"تسجيل خروج",
+    ecopoints:"نقاط إيكو",loading:"جار التحميل",nav_platform:"المنصة",
+    nav_tracking:"التتبع",nav_account:"الحساب",pdf:"تقرير PDF",keepgoing:"استمر! 🌿",
+    logimpact:"سجّل تأثيرك",manual:"يدوي",aiphoto:"صورة AI",bill:"رفع فاتورة",
+    analyze:"تحليل التأثير",submit:"إرسال",uploading:"جار الرفع...",
+    billparsed:"تم قراءة الفاتورة!",billreview:"راجع وصحح القيم إذا لزم",
+    challenges:"تحديات أسبوعية",aisuggestions:"اقتراحات AI",
+    winner_title:"لقد فزت!",loser_title:"استمر في المحاولة!",
+    rank1:"وصلت إلى المركز الأول!",tryagain:"سجل المزيد من البيانات لتحسين رتبتك"
+  }
+};
+
+let currentLang=localStorage.getItem('ecoLang')||'en';
+function t(k){return(LANGS[currentLang]&&LANGS[currentLang][k])||LANGS.en[k]||k;}
+
+function setLang(lang,skipClose){
+  currentLang=lang;
+  localStorage.setItem('ecoLang',lang);
+  document.documentElement.setAttribute('lang',lang);
+  document.documentElement.setAttribute('dir',lang==='ar'?'rtl':'ltr');
+  applyTranslations();
+  document.querySelectorAll('.lang-option').forEach(o=>o.classList.toggle('active',o.dataset.lang===lang));
+  const lbl=document.getElementById('langPickerLabel');
+  const flags={en:'🇬🇧',hi:'🇮🇳',ta:'🇮🇳',es:'🇪🇸',zh:'🇨🇳',ar:'🇸🇦'};
+  const names={en:'EN',hi:'हि',ta:'த',es:'ES',zh:'中',ar:'عر'};
+  if(lbl)lbl.textContent=(flags[lang]||'🌍')+' '+(names[lang]||lang.toUpperCase());
+  if(!skipClose){const dd=document.getElementById('langDropdown');if(dd)dd.classList.remove('open');const pk=document.getElementById('langPicker');if(pk)pk.classList.remove('open');}
+}
+function applyTranslations(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n');
+    el.textContent=t(k);
+  });
+}
+</script>
+
+<div id="pageTransition"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- SCORE TOAST -->
+<div class="toast-score" id="toastScore">
+  <div style="font-size:0.68rem;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.22rem;">🌟 New Score</div>
+  <div id="toastScoreVal" style="font-family:var(--fh);font-size:1.75rem;font-weight:800;" class="text-gradient">—</div>
+</div>
+
+<!-- STREAK TOAST -->
+<div class="toast-streak" id="toastStreak">
+  <div style="display:flex;align-items:center;gap:0.65rem;">
+    <span style="font-size:1.8rem;">🔥</span>
+    <div>
+      <div style="font-size:0.67rem;color:var(--fire);text-transform:uppercase;letter-spacing:0.1em;font-weight:800;">Streak Bonus!</div>
+      <div id="toastStreakMsg" style="font-weight:700;font-size:0.9rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT TOAST -->
+<div class="toast-ach" id="toastAch">
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <div id="toastAchIcon" style="font-size:2rem;">🏆</div>
+    <div>
+      <div style="font-size:0.63rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.1em;font-weight:800;margin-bottom:0.18rem;">Achievement Unlocked!</div>
+      <div id="toastAchName" style="font-weight:700;font-size:0.93rem;"></div>
+      <div id="toastAchDesc" style="font-size:0.77rem;color:rgba(255,255,255,0.45);margin-top:0.15rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader"></div>
+  <div class="loader-text" id="loaderText">Loading EcoTrack</div>
+</div>
+
+<!-- MOBILE TOGGLE -->
+<button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">
+  <span></span><span></span><span></span>
+</button>
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-logo">🌍</span>
+    <div>
+      <h2>EcoTrack Pro</h2>
+      <div class="sidebar-sub">Citizen Intelligence</div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-section">
+      <div class="nav-section-title" data-i18n="nav_platform">Platform</div>
+      <a href="{{ url_for('dashboard') }}" class="nav-link"><span>🏠</span><span data-i18n="dashboard">Dashboard</span></a>
+      <a href="{{ url_for('analytics') }}" class="nav-link"><span>📊</span><span data-i18n="analytics">Analytics</span></a>
+      <a href="{{ url_for('sdg_impact') }}" class="nav-link"><span>🌱</span><span data-i18n="sdg">SDG Impact</span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title" data-i18n="nav_tracking">Tracking</div>
+      <a href="{{ url_for('carbon_wallet') }}" class="nav-link"><span>🏆</span><span data-i18n="wallet">Carbon Wallet</span></a>
+      <a href="{{ url_for('weekly_report') }}" class="nav-link"><span>📅</span><span data-i18n="weekly">Weekly Report</span></a>
+      <a href="{{ url_for('leaderboard') }}" class="nav-link"><span>🥇</span><span data-i18n="leaderboard">Leaderboard</span><span class="nav-badge">LIVE</span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title" data-i18n="nav_account">Account</div>
+      <a href="{{ url_for('profile') }}" class="nav-link"><span>👤</span><span data-i18n="profile">Profile</span></a>
+      <a href="{{ url_for('report') }}" class="nav-link"><span>📄</span><span data-i18n="pdf">PDF Report</span></a>
+      <a href="{{ url_for('logout') }}" class="nav-link" style="color:rgba(255,90,90,0.65);"><span>🚪</span><span data-i18n="logout">Logout</span></a>
+    </div>
+  </nav>
+  {% if current_user.is_authenticated %}
+  <div class="eco-summary">
+    <div class="eco-pts-row">
+      <div class="eco-summary-title" data-i18n="ecopoints">Eco Points</div>
+      <div class="eco-pulse"></div>
+    </div>
+    <div class="eco-summary-value">{{ current_user.eco_points or 0 }}</div>
+    <div class="eco-summary-label">{{ current_user.family_name or 'Family' }} · <span data-i18n="keepgoing">Keep going! 🌿</span></div>
+  </div>
+  {% endif %}
+</aside>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<main class="content">
+  <div class="page-header">
+    <div>{% block page_title %}{% endblock %}</div>
+    <div class="page-header-right">
+      <!-- LANGUAGE PICKER -->
+      <div class="lang-picker" id="langPicker" onclick="toggleLang()">
+        <span id="langPickerLabel">🇬🇧 EN</span>
+        <span class="lang-caret">▼</span>
+        <div class="lang-dropdown" id="langDropdown">
+          <div class="lang-option active" data-lang="en" onclick="setLang('en');event.stopPropagation()">🇬🇧 English</div>
+          <div class="lang-option" data-lang="hi" onclick="setLang('hi');event.stopPropagation()">🇮🇳 हिन्दी</div>
+          <div class="lang-option" data-lang="ta" onclick="setLang('ta');event.stopPropagation()">🇮🇳 தமிழ்</div>
+          <div class="lang-option" data-lang="es" onclick="setLang('es');event.stopPropagation()">🇪🇸 Español</div>
+          <div class="lang-option" data-lang="zh" onclick="setLang('zh');event.stopPropagation()">🇨🇳 中文</div>
+          <div class="lang-option" data-lang="ar" onclick="setLang('ar');event.stopPropagation()">🇸🇦 العربية</div>
+        </div>
+      </div>
+      {% if current_user.is_authenticated %}
+      <div class="user-badge">
+        <div class="user-avatar">{{ current_user.family_name[0].upper() if current_user.family_name else '🌿' }}</div>
+        <div>
+          <div style="font-weight:700;font-size:0.86rem;">{{ current_user.family_name or 'Family' }}</div>
+          <div style="font-size:0.69rem;color:rgba(255,255,255,0.35);">{{ current_user.location or '📍 —' }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% with messages=get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for category,message in messages %}
+  <div class="alert alert-{{ category }}">
+    <span>{% if category=='success'%}✅{% elif category=='danger'%}❌{% elif category=='warning'%}⚠️{% else %}ℹ️{% endif %}</span>
+    <span>{{ message }}</span>
+  </div>
+  {% endfor %}{% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+// ── BOOT ──
+window.addEventListener('DOMContentLoaded',()=>{
+  const saved=localStorage.getItem('ecoLang')||'en';
+  setLang(saved,true);
+  const lt=document.getElementById('loaderText');
+  if(lt)lt.textContent=t('loading');
+});
+window.addEventListener('load',()=>{
+  setTimeout(()=>{document.getElementById('loadingOverlay').classList.add('hidden');},380);
+});
+
+// ── SIDEBAR ──
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+// ── LANG DROPDOWN ──
+function toggleLang(){
+  const pk=document.getElementById('langPicker');
+  const dd=document.getElementById('langDropdown');
+  pk.classList.toggle('open');
+  dd.classList.toggle('open');
+}
+document.addEventListener('click',e=>{
+  const sb=document.getElementById('sidebar'),tg=document.getElementById('menuToggle');
+  if(window.innerWidth<=1024&&sb.classList.contains('open')&&!sb.contains(e.target)&&!tg.contains(e.target))sb.classList.remove('open');
+  if(!e.target.closest('#langPicker')){
+    document.getElementById('langDropdown')?.classList.remove('open');
+    document.getElementById('langPicker')?.classList.remove('open');
+  }
+});
+
+// ── ACTIVE NAV ──
+document.querySelectorAll('.nav-link').forEach(l=>{
+  if(l.getAttribute('href')===window.location.pathname)l.classList.add('active');
+});
+
+// ── PAGE TRANSITION ──
+document.querySelectorAll('.nav-link').forEach(l=>{
+  l.addEventListener('click',e=>{
+    const href=l.getAttribute('href');
+    if(!href||href==='#'||href===window.location.pathname)return;
+    e.preventDefault();
+    const ov=document.getElementById('pageTransition');
+    ov.style.transition='opacity 0.28s ease';ov.style.opacity='1';
+    setTimeout(()=>window.location.href=href,260);
+  });
+});
+
+// ── CHART DEFAULTS ──
+if(typeof Chart!=='undefined'){
+  Chart.defaults.color='rgba(255,255,255,0.48)';
+  Chart.defaults.borderColor='rgba(255,255,255,0.07)';
+  Chart.defaults.font.family="'Plus Jakarta Sans',sans-serif";
+  Chart.defaults.font.size=11;
+}
+
+// ═══════════════════════════════════════════
+//  CONFETTI ENGINE
+// ═══════════════════════════════════════════
+function launchConfetti(n=120){
+  const cols=['#06ffa5','#ffc947','#ff5e3a','#00d4ff','#a855f7','#ff3a6e','#fff'];
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    const x=Math.random()*100,sz=5+Math.random()*9,dur=2+Math.random()*3,dl=Math.random()*2;
+    const col=cols[Math.floor(Math.random()*cols.length)];
+    el.style.cssText=`left:${x}vw;width:${sz}px;height:${sz}px;background:${col};animation-duration:${dur}s;animation-delay:${dl}s;`;
+    if(Math.random()>0.5)el.style.borderRadius='50%';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),(dur+dl)*1000+200);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  WINNER MODAL — Full cinematic win screen
+// ═══════════════════════════════════════════
+function showWinner(title,subtitle,sub2,rank){
+  launchConfetti(160);
+  const ov=document.createElement('div');
+  ov.className='winner-overlay';ov.id='winnerOverlay';
+  ov.innerHTML=`
+    <div class="winner-card">
+      ${rank?`<div class="winner-rank">🏆 Rank #${rank}</div>`:''}
+      <span class="trophy">🏆</span>
+      <h1>${title||t('winner_title')}</h1>
+      <p>${subtitle||t('rank1')}</p>
+      ${sub2?`<p class="sub">${sub2}</p>`:''}
+      <div style="display:flex;gap:1rem;justify-content:center;margin-top:2.5rem;flex-wrap:wrap;">
+        <button class="btn-claim" onclick="closeWinner()">🎉 Claim Reward!</button>
+        <button style="background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:0.9rem 1.5rem;border-radius:14px;" onclick="closeWinner()">Continue</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>launchConfetti(80),900);
+  setTimeout(()=>launchConfetti(60),1900);
+}
+function closeWinner(){
+  const o=document.getElementById('winnerOverlay');
+  if(o){o.style.transition='opacity 0.4s';o.style.opacity='0';setTimeout(()=>o.remove(),400);}
+}
+
+// ═══════════════════════════════════════════
+//  LOSER MODAL — Dramatic loss screen
+// ═══════════════════════════════════════════
+function showLoser(title,subtitle,tip,rank){
+  // Smoke particles
+  for(let i=0;i<18;i++){
+    const s=document.createElement('div');
+    s.className='smoke-particle';
+    const x=20+Math.random()*60,sz=15+Math.random()*35,dur=1.2+Math.random()*2;
+    s.style.cssText=`left:${x}vw;bottom:${10+Math.random()*30}vh;width:${sz}px;height:${sz}px;background:rgba(255,58,110,0.4);animation-duration:${dur}s;animation-delay:${Math.random()*1}s;`;
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),(dur+1)*1000+200);
+  }
+  const ov=document.createElement('div');
+  ov.className='loser-overlay';ov.id='loserOverlay';
+  ov.innerHTML=`
+    <div class="loser-card">
+      ${rank?`<div style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.38rem 1.1rem;background:rgba(255,58,110,0.12);border:1px solid rgba(255,58,110,0.35);border-radius:50px;font-size:0.8rem;font-weight:800;color:var(--danger);margin-bottom:1.2rem;">📉 Rank #${rank}</div>`:''}
+      <span class="skull">💀</span>
+      <h1>${title||t('loser_title')}</h1>
+      <p>${subtitle||t('tryagain')}</p>
+      ${tip?`<div class="loser-tip">💡 <strong>Quick Win:</strong> ${tip}</div>`:''}
+      <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;flex-wrap:wrap;">
+        <button class="btn-retry" onclick="closeLoser()">🚀 Try Again!</button>
+        <button style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);padding:0.85rem 1.4rem;border-radius:14px;" onclick="closeLoser()">Dismiss</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+function closeLoser(){
+  const o=document.getElementById('loserOverlay');
+  if(o){o.style.transition='opacity 0.4s';o.style.opacity='0';setTimeout(()=>o.remove(),400);}
+}
+
+// ═══════════════════════════════════════════
+//  TOASTS
+// ═══════════════════════════════════════════
+function showToastScore(score){
+  const el=document.getElementById('toastScore');
+  document.getElementById('toastScoreVal').textContent=score;
+  el.style.display='block';el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.style.transition='opacity 0.5s';el.style.opacity='0';setTimeout(()=>{el.style.display='none';el.style.opacity='1';},500);},3500);
+}
+function showToastAch(icon,name,desc){
+  document.getElementById('toastAchIcon').textContent=icon;
+  document.getElementById('toastAchName').textContent=name;
+  document.getElementById('toastAchDesc').textContent=desc;
+  const el=document.getElementById('toastAch');
+  el.style.display='block';el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.style.transition='opacity 0.5s';el.style.opacity='0';setTimeout(()=>{el.style.display='none';el.style.opacity='1';},500);},4500);
+}
+function showToastStreak(msg){
+  document.getElementById('toastStreakMsg').textContent=msg;
+  const el=document.getElementById('toastStreak');
+  el.style.display='block';el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.style.transition='opacity 0.5s';el.style.opacity='0';setTimeout(()=>{el.style.display='none';el.style.opacity='1';},500);},3500);
+}
+
+// ── SCROLL REVEAL ──
+const revealObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';}
+  });
+},{threshold:0.08,rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.stat-card,.card,.challenge-item').forEach(el=>{
+  el.style.opacity='0';el.style.transform='translateY(18px)';
+  el.style.transition='opacity 0.5s ease, transform 0.5s ease';
+  revealObs.observe(el);
+});
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

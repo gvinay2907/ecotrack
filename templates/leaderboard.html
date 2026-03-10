@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block page_title %}
+<h1 class="page-title"><span class="float">🥇</span> <span data-i18n="leaderboard">Leaderboard</span></h1>
+{% endblock %}
+
+{% block content %}
+<style>
+.lb-hero{background:linear-gradient(135deg,rgba(255,201,71,0.1),rgba(255,94,58,0.06));border:1px solid rgba(255,201,71,0.22);border-radius:24px;padding:2.5rem;margin-bottom:1.4rem;text-align:center;position:relative;overflow:hidden;}
+.lb-hero::before{content:"🏆";position:absolute;font-size:18rem;right:-4rem;top:-5rem;opacity:0.05;pointer-events:none;}
+.filter-row{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.4rem;}
+.filter-btn{padding:0.52rem 1.2rem;background:var(--c);border:1px solid var(--bs);border-radius:50px;color:rgba(255,255,255,0.45);cursor:pointer;font-size:0.81rem;font-weight:600;transition:all 0.25s var(--es);}
+.filter-btn.active,.filter-btn:hover{background:var(--gp);color:#05080f;border-color:transparent;}
+</style>
+
+<!-- HERO -->
+<div class="lb-hero">
+  <div style="position:relative;z-index:1;">
+    <h2 style="font-family:var(--fh);font-size:1.9rem;margin-bottom:0.5rem;">Champion Sustainability Leaders</h2>
+    <p style="color:rgba(255,255,255,0.45);font-size:0.88rem;">Compete globally · Make local impact · Earn eco rewards</p>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="grid">
+  <div class="stat-card"><h3>👥 Participants</h3><h2>{{ total_users|default(1247) }}</h2><p class="subtitle">Active families</p></div>
+  <div class="stat-card"><h3>🎯 Your Rank</h3><h2 class="text-gradient">#{{ your_rank|default(42) }}</h2><p class="subtitle">↗ Up 5 places</p></div>
+  <div class="stat-card"><h3>📊 Top 10% Bar</h3><h2>{{ top_10_threshold|default(850) }}</h2><p class="subtitle">Points needed</p></div>
+  <div class="stat-card"><h3>🌿 CO₂ Saved</h3><h2 class="text-gradient">{{ global_co2_saved|default(45678) }}<span style="font-size:1rem;opacity:0.5;">kg</span></h2><p class="subtitle">Collective impact</p></div>
+</div>
+
+<!-- FILTER -->
+<div class="filter-row">
+  <button class="filter-btn active" onclick="filterLB(this)">🌍 Global</button>
+  <button class="filter-btn" onclick="filterLB(this)">🇮🇳 Country</button>
+  <button class="filter-btn" onclick="filterLB(this)">🏙️ City</button>
+  <button class="filter-btn" onclick="filterLB(this)">👥 Friends</button>
+</div>
+
+<!-- LIST -->
+<div class="card" id="lbList">
+  <h3 style="margin-bottom:1.25rem;">🏅 Top Performers</h3>
+  {% if users %}
+  {% for user in users %}
+  <div class="rank-entry {% if loop.index==1%}rank-1{% elif loop.index==2%}rank-2{% elif loop.index==3%}rank-3{% endif %} {% if user.id==current_user.id%}is-you{% endif %}" data-idx="{{ loop.index }}">
+    <div class="rank-num">{% if loop.index==1%}<span class="medal-icon">🥇</span>{% elif loop.index==2%}<span class="medal-icon">🥈</span>{% elif loop.index==3%}<span class="medal-icon">🥉</span>{% else%}#{{ loop.index }}{% endif %}</div>
+    <div class="rank-info">
+      <div class="rank-name">{{ user.family_name or 'Anonymous' }}{% if user.id==current_user.id %}<span class="badge badge-success" style="margin-left:0.5rem;">YOU</span>{% endif %}</div>
+      <div class="rank-meta"><span>📍 {{ user.location or 'Unknown' }}</span><span>👥 {{ user.members or 1 }} members</span></div>
+    </div>
+    <div class="points-pill"><div class="pts-val">{{ user.eco_points or 0 }}</div><div class="pts-label">pts</div></div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="text-align:center;padding:3rem;color:rgba(255,255,255,0.32);">
+    <p style="font-size:1.1rem;margin-bottom:0.5rem;">No data yet</p><p>Be the first to log your impact!</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- MILESTONE -->
+<div class="card" style="background:linear-gradient(135deg,rgba(6,255,165,0.07),rgba(0,212,255,0.04));border-color:var(--bp);">
+  <h3>🎯 Your Next Milestone</h3>
+  <p style="margin:1rem 0;font-size:0.89rem;color:rgba(255,255,255,0.55);">You need <strong style="color:white;">{{ points_to_next|default(47) }} more points</strong> to reach the top 25</p>
+  <div class="progress-container"><div class="progress-bar" style="width:73%;"></div></div>
+  <p style="margin-top:0.5rem;font-size:0.76rem;color:rgba(255,255,255,0.28);">73% to next rank</p>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function filterLB(el){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const entries=document.querySelectorAll('.rank-entry');
+  entries.forEach((e,i)=>{
+    e.style.opacity='0';e.style.transform='translateY(12px)';
+    setTimeout(()=>{e.style.transition='all 0.45s ease '+(i*0.045)+'s';e.style.opacity='1';e.style.transform='translateY(0)';},50);
+  });
+}
+// Staggered entry
+const entries=document.querySelectorAll('.rank-entry');
+entries.forEach((el,i)=>{
+  setTimeout(()=>{
+    el.style.transition='all 0.5s var(--es)';
+    el.style.opacity='1';el.style.transform='translateY(0)';
+    // Show winner if rank #1 is current user
+    if(el.classList.contains('is-you')&&el.classList.contains('rank-1')){
+      setTimeout(()=>showWinner(t('winner_title'),t('rank1'),'Claim your 500 eco points reward! 🎉',1),600);
+    }
+  },100+i*65);
+});
+</script>
+{% endblock %}

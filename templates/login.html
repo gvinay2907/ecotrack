@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoTrack Pro — Sign In</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem;}
+.login-wrap{display:grid;grid-template-columns:1fr 1fr;max-width:1080px;width:100%;background:rgba(255,255,255,0.03);backdrop-filter:blur(30px);border:1px solid var(--bl);border-radius:28px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.5);animation:pageIn 0.6s var(--ee) both;}
+.login-visual{background:linear-gradient(145deg,rgba(6,255,165,0.12),rgba(0,212,255,0.07));padding:4rem 3rem;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;border-right:1px solid var(--bs);}
+.login-visual::before{content:"🌍";position:absolute;font-size:22rem;right:-5rem;bottom:-6rem;opacity:0.05;animation:float 10s ease-in-out infinite;}
+.brand{display:flex;align-items:center;gap:0.75rem;margin-bottom:3rem;}
+.brand-icon{width:48px;height:48px;background:var(--gp);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+.brand-name{font-family:var(--fh);font-size:1.1rem;font-weight:800;background:var(--gp);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.visual-headline{font-family:var(--fh);font-size:2.5rem;font-weight:800;line-height:1.15;margin-bottom:1rem;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.stats-strip{display:flex;gap:2rem;margin-top:3rem;padding-top:2rem;border-top:1px solid var(--bs);}
+.ss-item{text-align:center;}
+.ss-val{font-family:var(--fh);font-size:1.5rem;font-weight:800;background:var(--gp);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;}
+.ss-lbl{font-size:0.66rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.2rem;}
+.login-form-side{padding:4rem 3rem;display:flex;flex-direction:column;justify-content:center;}
+.login-form-side h2{font-family:var(--fh);font-size:1.75rem;font-weight:800;margin-bottom:0.4rem;background:var(--gp);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.login-form-side p{color:rgba(255,255,255,0.42);font-size:0.87rem;margin-bottom:2rem;}
+.form-group{margin-bottom:1rem;}
+.social-hint{display:flex;align-items:center;gap:0.75rem;font-size:0.78rem;color:rgba(255,255,255,0.32);margin:1.4rem 0;}
+.social-hint::before,.social-hint::after{content:"";flex:1;height:1px;background:var(--bs);}
+.lang-bar{display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:1.5rem;}
+.lang-pill{padding:0.3rem 0.7rem;background:rgba(255,255,255,0.04);border:1px solid var(--bs);border-radius:50px;font-size:0.76rem;cursor:pointer;transition:all 0.2s;}
+.lang-pill:hover,.lang-pill.active{border-color:var(--bp);color:var(--p);background:var(--p-dim);}
+@media(max-width:768px){.login-wrap{grid-template-columns:1fr;}.login-visual{display:none;}}
+</style>
+</head>
+<body>
+<script>
+const LOGIN_LANGS={
+  en:{signin:"Welcome Back",subtitle:"Sign in to track your environmental impact",email:"Email Address",password:"Password",btn:"Sign In",noreg:"Don't have an account?",register:"Register",loading:"Signing in..."},
+  hi:{signin:"वापस स्वागत है",subtitle:"अपना पर्यावरण प्रभाव ट्रैक करें",email:"ईमेल पता",password:"पासवर्ड",btn:"साइन इन",noreg:"खाता नहीं है?",register:"रजिस्टर करें",loading:"लोग इन..."},
+  ta:{signin:"மீண்டும் வரவேற்கிறோம்",subtitle:"உங்கள் சுற்றுச்சூழல் தாக்கத்தை கண்காணிக்கவும்",email:"மின்னஞ்சல்",password:"கடவுச்சொல்",btn:"உள்நுழைக",noreg:"கணக்கு இல்லையா?",register:"பதிவு செய்க",loading:"உள்நுழைகிறது..."},
+  es:{signin:"Bienvenido de Nuevo",subtitle:"Monitorea tu impacto ambiental",email:"Correo Electrónico",password:"Contraseña",btn:"Iniciar Sesión",noreg:"¿No tienes cuenta?",register:"Registrarse",loading:"Iniciando..."},
+  zh:{signin:"欢迎回来",subtitle:"追踪您的环境影响",email:"电子邮件",password:"密码",btn:"登录",noreg:"没有账户？",register:"注册",loading:"登录中..."},
+  ar:{signin:"مرحباً بعودتك",subtitle:"تتبع تأثيرك البيئي",email:"البريد الإلكتروني",password:"كلمة المرور",btn:"تسجيل الدخول",noreg:"ليس لديك حساب؟",register:"التسجيل",loading:"جار الدخول..."}
+};
+let lng=localStorage.getItem('ecoLang')||'en';
+function lt(k){return(LOGIN_LANGS[lng]&&LOGIN_LANGS[lng][k])||LOGIN_LANGS.en[k]||k;}
+function setLoginLang(l){lng=l;localStorage.setItem('ecoLang',l);document.querySelectorAll('.lang-pill').forEach(p=>p.classList.toggle('active',p.dataset.l===l));applyLoginTrans();}
+function applyLoginTrans(){
+  document.getElementById('loginTitle').textContent=lt('signin');
+  document.getElementById('loginSub').textContent=lt('subtitle');
+  document.getElementById('loginEmailLabel').textContent=lt('email');
+  document.getElementById('loginPassLabel').textContent=lt('password');
+  document.getElementById('loginBtn').textContent=lt('btn');
+  document.getElementById('loginNoReg').textContent=lt('noreg');
+  document.getElementById('loginRegLink').textContent=lt('register');
+}
+window.addEventListener('DOMContentLoaded',()=>{setLoginLang(lng);});
+</script>
+
+<div class="login-wrap">
+  <!-- LEFT VISUAL -->
+  <div class="login-visual">
+    <div class="brand">
+      <div class="brand-icon">🌍</div>
+      <div class="brand-name">EcoTrack Pro</div>
+    </div>
+    <h2 class="visual-headline">Track. Improve.<br>Lead.</h2>
+    <p style="color:rgba(255,255,255,0.5);font-size:0.9rem;line-height:1.7;">Join 12,000+ families reducing their carbon footprint and competing for a sustainable future.</p>
+    <div style="margin-top:2rem;display:flex;flex-direction:column;gap:0.65rem;">
+      {% for icon,text in [('🌱','AI-powered impact tracking'),('📊','Real-time SDG alignment'),('🏆','Gamified sustainability'),('🌍','Global community leaderboard')] %}
+      <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.86rem;color:rgba(255,255,255,0.6);">
+        <span style="font-size:1.1rem;">{{ icon }}</span>{{ text }}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="stats-strip">
+      <div class="ss-item"><div class="ss-val">12k+</div><div class="ss-lbl">Citizens</div></div>
+      <div class="ss-item"><div class="ss-val">45t</div><div class="ss-lbl">CO₂ Saved</div></div>
+      <div class="ss-item"><div class="ss-val">7 SDGs</div><div class="ss-lbl">Aligned</div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT FORM -->
+  <div class="login-form-side">
+    <h2 id="loginTitle">Welcome Back</h2>
+    <p id="loginSub">Sign in to track your environmental impact</p>
+
+    {% with messages=get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for category,message in messages %}
+    <div class="alert alert-{{ category }}"><span>{% if category=='success'%}✅{% else%}❌{% endif %}</span><span>{{ message }}</span></div>
+    {% endfor %}{% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="form-group"><label id="loginEmailLabel">Email Address</label><input type="email" name="email" required placeholder="you@example.com"></div>
+      <div class="form-group"><label id="loginPassLabel">Password</label><input type="password" name="password" required placeholder="••••••••"></div>
+      <button type="submit" id="loginBtn" style="width:100%;padding:1rem;margin-top:0.5rem;font-size:0.95rem;">Sign In</button>
+    </form>
+
+    <div class="social-hint">or</div>
+    <p style="text-align:center;font-size:0.84rem;color:rgba(255,255,255,0.38);">
+      <span id="loginNoReg">Don't have an account?</span>
+      <a href="{{ url_for('register') }}" id="loginRegLink" style="color:var(--p);font-weight:700;text-decoration:none;margin-left:0.4rem;">Register</a>
+    </p>
+
+    <!-- LANGUAGE BAR -->
+    <div class="lang-bar">
+      {% for code,flag,name in [('en','🇬🇧','EN'),('hi','🇮🇳','हि'),('ta','🇮🇳','த'),('es','🇪🇸','ES'),('zh','🇨🇳','中'),('ar','🇸🇦','عر')] %}
+      <div class="lang-pill {% if code=='en'%}active{% endif %}" data-l="{{ code }}" onclick="setLoginLang('{{ code }}')">{{ flag }} {{ name }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+</body>
+</html>

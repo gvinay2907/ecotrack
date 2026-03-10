@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+<h1 class="page-title"><span>👤</span> Family Profile</h1>
+{% endblock %}
+
+{% block content %}
+<style>
+    .profile-banner {
+        background: linear-gradient(135deg, rgba(0,214,143,0.12), rgba(76,201,240,0.06));
+        border: 1px solid var(--bp);
+        border-radius: 24px;
+        padding: 2.5rem;
+        display: flex;
+        align-items: center;
+        gap: 2.5rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .profile-avatar-lg {
+        width: 120px; height: 120px;
+        border-radius: 50%;
+        background: var(--gp);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 3rem; font-weight: 800;
+        flex-shrink: 0;
+        box-shadow: 0 0 40px rgba(0,214,143,0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: #060b14;
+    }
+    .profile-avatar-lg:hover { transform: scale(1.07); box-shadow: 0 0 60px rgba(0,214,143,0.5); }
+
+    .profile-stats-row { display: flex; gap: 2rem; margin-top: 1rem; flex-wrap: wrap; }
+    .ps { text-align: center; }
+    .ps-val { font-family: var(--fh); font-size: 1.75rem; font-weight: 800; background: var(--gp); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+    .ps-label { font-size: 0.68rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.2rem; }
+
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+
+    .achievement-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+    .ach-card {
+        background: var(--c);
+        border: 1px solid var(--bs);
+        border-radius: 16px;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.25s ease;
+    }
+    .ach-card:hover { border-color: var(--bp); transform: translateY(-4px); box-shadow: var(--shadow-eco); }
+    .ach-card.locked { opacity: 0.35; filter: grayscale(1); }
+    .ach-card.locked:hover { transform: none; box-shadow: none; border-color: var(--bs); }
+    .ach-icon { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; }
+    .ach-name { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .ach-desc { font-size: 0.72rem; color: rgba(255,255,255,0.4); line-height: 1.4; }
+
+    .prog-item { margin-bottom: 1.25rem; }
+    .prog-header { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+    .prog-label { font-size: 0.85rem; font-weight: 600; }
+    .prog-pct { font-size: 0.85rem; font-weight: 700; color: var(--p); }
+
+    @media (max-width: 700px) {
+        .profile-banner { flex-direction: column; text-align: center; }
+        .profile-stats-row { justify-content: center; }
+        .form-grid-2 { grid-template-columns: 1fr; }
+    }
+</style>
+
+<!-- Profile Banner -->
+<div class="profile-banner">
+    <div class="profile-avatar-lg" title="Change avatar">
+        {{ current_user.family_name[0].upper() if current_user.family_name else '🌿' }}
+    </div>
+    <div style="flex:1;">
+        <h2 style="font-family:var(--fh);font-size:2rem;margin-bottom:0.3rem;">
+            {{ current_user.family_name or 'Your Family' }}
+        </h2>
+        <p style="color:rgba(255,255,255,0.45);font-size:0.88rem;">
+            📍 {{ current_user.location or 'Unknown' }} &nbsp;·&nbsp;
+            👥 {{ current_user.members or 1 }} members &nbsp;·&nbsp;
+            🏡 {{ current_user.location_type or 'Urban' }}
+        </p>
+        <div class="profile-stats-row">
+            <div class="ps"><div class="ps-val">{{ current_user.eco_points or 0 }}</div><div class="ps-label">Eco Points</div></div>
+            <div class="ps"><div class="ps-val">{{ days_active|default(42) }}</div><div class="ps-label">Days Active</div></div>
+            <div class="ps"><div class="ps-val">{{ streak|default(7) }}</div><div class="ps-label">Day Streak</div></div>
+            <div class="ps"><div class="ps-val">#{{ global_rank|default(42) }}</div><div class="ps-label">Global Rank</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="grid" style="margin-bottom:1.5rem;">
+    <div class="stat-card"><h3>Member Since</h3><h2>{{ member_since|default('Jan 2024') }}</h2></div>
+    <div class="stat-card"><h3>Total Entries</h3><h2>{{ total_entries|default(156) }}</h2></div>
+    <div class="stat-card"><h3>CO₂ Saved</h3><h2 class="text-gradient">{{ total_co2_saved|default(234) }}<span style="font-size:1rem;opacity:0.5;"> kg</span></h2></div>
+    <div class="stat-card"><h3>Rank</h3><h2>#{{ global_rank|default(42) }}</h2></div>
+</div>
+
+<!-- Edit Profile -->
+<div class="card">
+    <h3>✏️ Update Profile</h3>
+    <form method="POST" style="margin-top:0.75rem;">
+        <div class="form-grid-2">
+            <div>
+                <label>🏠 Family Name</label>
+                <input type="text" name="family_name" value="{{ current_user.family_name or '' }}" placeholder="The Green Family" required>
+            </div>
+            <div>
+                <label>👥 Members</label>
+                <input type="number" name="members" value="{{ current_user.members or 1 }}" min="1" required>
+            </div>
+            <div>
+                <label>📍 Location</label>
+                <input type="text" name="location" value="{{ current_user.location or '' }}" placeholder="City, Country" required>
+            </div>
+            <div>
+                <label>🏡 Location Type</label>
+                <select name="location_type">
+                    <option value="Urban" {% if current_user.location_type == 'Urban' %}selected{% endif %}>Urban</option>
+                    <option value="Suburban" {% if current_user.location_type == 'Suburban' %}selected{% endif %}>Suburban</option>
+                    <option value="Rural" {% if current_user.location_type == 'Rural' %}selected{% endif %}>Rural</option>
+                </select>
+            </div>
+            <div>
+                <label>📧 Email</label>
+                <input type="email" value="{{ current_user.email }}" disabled style="opacity:0.4;">
+            </div>
+            <div>
+                <label>🌍 Eco Points</label>
+                <input type="text" value="{{ current_user.eco_points or 0 }}" disabled style="opacity:0.4;color:var(--p);">
+            </div>
+        </div>
+        <button type="submit" style="margin-top:0.5rem;">💾 Save Changes</button>
+    </form>
+</div>
+
+<!-- Achievements -->
+<div class="card">
+    <h3>🏆 Achievements & Badges</h3>
+    <div class="achievement-grid" style="margin-top:0.75rem;">
+        {% for icon, name, desc, locked in [
+            ('🌟','First Steps','Logged first entry',False),
+            ('🔥','7-Day Streak','Consistent tracking',False),
+            ('🌱','Eco Warrior','500 points earned',False),
+            ('💎','Carbon Crusher','Reduce 1000kg CO₂',True),
+            ('👑','Leaderboard King','Reach top 10',True),
+            ('🎯','Perfect Month','30-day streak',True),
+            ('🚀','Impact Champion','Score 90+ once',False),
+            ('🌍','SDG Hero','Align with 7+ SDGs',True),
+        ] %}
+        <div class="ach-card {% if locked %}locked{% endif %}">
+            <span class="ach-icon">{{ icon }}</span>
+            <div class="ach-name">{{ name }}</div>
+            <div class="ach-desc">{{ desc }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Progress -->
+<div class="card">
+    <h3>📈 Progress Towards Goals</h3>
+    <div style="margin-top:0.75rem;">
+        {% for label, pct, color in [
+            ('🎯 Monthly Target', 67, 'var(--gp)'),
+            ('💧 Water Conservation', 82, 'linear-gradient(90deg,#4cc9f0,#4361ee)'),
+            ('⚡ Energy Efficiency', 58, 'linear-gradient(90deg,#ffbe0b,#fb5607)'),
+            ('♻️ Waste Reduction', 91, 'var(--gp)'),
+        ] %}
+        <div class="prog-item">
+            <div class="prog-header">
+                <span class="prog-label">{{ label }}</span>
+                <span class="prog-pct">{{ pct }}%</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width:{{ pct }}%;background:{{ color }};"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+<h1 class="page-title"><span class="float">📅</span> Weekly Report</h1>
+{% endblock %}
+
+{% block content %}
+<style>
+    .report-hero {
+        background: linear-gradient(135deg, rgba(76,201,240,0.1), rgba(67,97,238,0.06));
+        border: 1px solid rgba(76,201,240,0.2);
+        border-radius: 24px;
+        padding: 2.5rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+    }
+    .report-hero::before { content:"📊"; position:absolute; font-size:18rem; right:-3rem; top:-5rem; opacity:0.04; pointer-events:none; }
+
+    .score-donut-wrap { position: relative; width: 180px; height: 180px; margin: 1.5rem auto; }
+    .score-donut-wrap svg { transform: rotate(-90deg); }
+    .score-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .score-big { font-family: var(--fh); font-size: 2.5rem; font-weight: 900; background: var(--gp); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+
+    .insight-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--bs);
+        border-left: 3px solid var(--p);
+        border-radius: 0 12px 12px 0;
+        margin-bottom: 0.6rem;
+        transition: all 0.25s ease;
+        font-size: 0.9rem;
+    }
+    .insight-item:hover { background: rgba(0,214,143,0.05); transform: translateX(4px); }
+</style>
+
+<!-- Hero -->
+<div class="report-hero">
+    <div style="position:relative;z-index:1;">
+        <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;color:rgba(255,255,255,0.35);">AI-Generated Report · Sent to your email</p>
+        <h2 style="font-family:var(--fh);font-size:1.75rem;margin:0.5rem 0;">This Week's Sustainability Report</h2>
+        <p style="color:rgba(255,255,255,0.45);font-size:0.88rem;">7-day environmental impact summary with ML insights</p>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="grid" style="margin-bottom:1.5rem;">
+    <div class="card" style="text-align:center;">
+        <h3>📊 Average Score</h3>
+        <div class="score-donut-wrap">
+            <svg width="180" height="180" viewBox="0 0 180 180">
+                <circle cx="90" cy="90" r="76" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
+                <circle cx="90" cy="90" r="76" fill="none" stroke="url(#wg)" stroke-width="12"
+                    stroke-dasharray="478" stroke-dashoffset="{{ 478 - (avg_score|default(0) / 100 * 478) }}"
+                    stroke-linecap="round"/>
+                <defs>
+                    <linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#00d68f"/>
+                        <stop offset="100%" stop-color="#4cc9f0"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <div class="score-center">
+                <div class="score-big">{{ avg_score|default(0) }}</div>
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);">/ 100</div>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card" style="display:flex;flex-direction:column;justify-content:center;">
+        <h3>🌡️ Total CO₂</h3>
+        <h2 style="font-size:3rem;" class="text-gradient">{{ total_co2|default(0) }}<span style="font-size:1.25rem;opacity:0.6;"> kg</span></h2>
+        <p class="subtitle">This week</p>
+    </div>
+</div>
+
+<!-- AI Insights -->
+<div class="card">
+    <div style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.3rem 0.75rem;background:linear-gradient(135deg,rgba(123,47,255,0.2),rgba(76,201,240,0.15));border:1px solid rgba(123,47,255,0.3);border-radius:50px;font-size:0.72rem;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;">🤖 AI Insights</div>
+    <h3 style="margin-bottom:1rem;">Weekly Intelligence Summary</h3>
+    {% for insight in weekly_insights %}
+    <div class="insight-item">
+        <span style="font-size:1.2rem;flex-shrink:0;">{{ insight[0] }}</span>
+        <span>{{ insight[2:] if insight|length > 2 else insight }}</span>
+    </div>
+    {% else %}
+    <div class="insight-item">
+        <span style="font-size:1.2rem;">📊</span>
+        <span>Log 7 days of data to unlock your AI-powered weekly insights</span>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Chart -->
+<div class="card">
+    <h3>📈 7-Day Performance Trend</h3>
+    <div style="height:240px;position:relative;margin-top:0.5rem;">
+        <canvas id="weeklyTrendChart"></canvas>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById('weeklyTrendChart'), {
+    type: 'line',
+    data: {
+        labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        datasets: [{
+            label: 'Score', data: [70, 65, 78, 72, 80, 88, {{ avg_score|default(75) }}],
+            borderColor: '#00d68f', borderWidth: 2.5,
+            pointRadius: 5, pointBackgroundColor: '#00d68f', pointBorderColor: '#060b14', pointBorderWidth: 2,
+            tension: 0.4, fill: true,
+            backgroundColor: (ctx) => {
+                const g = ctx.chart.ctx.createLinearGradient(0,0,0,220);
+                g.addColorStop(0,'rgba(0,214,143,0.15)'); g.addColorStop(1,'rgba(0,214,143,0)');
+                return g;
+            }
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.4)' }, min: 0, max: 100 },
+            x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.4)' } }
+        }
+    }
+});
+</script>
+{% endblock %}

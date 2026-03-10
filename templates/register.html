@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTrack Pro — Create Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+
+        .register-wrap {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            max-width: 1100px;
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--bl);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            animation: fadeInUp 0.55s ease-out both;
+        }
+
+        .reg-visual {
+            background: linear-gradient(160deg, rgba(0,214,143,0.12), rgba(123,47,255,0.08));
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--bs);
+            position: relative;
+            overflow: hidden;
+        }
+        .reg-visual::before {
+            content: "🌱";
+            position: absolute;
+            font-size: 20rem;
+            right: -4rem; bottom: -5rem;
+            opacity: 0.05;
+            animation: float 10s ease-in-out infinite;
+        }
+
+        .reg-logo { display: flex; align-items: center; gap: 0.75rem; }
+        .reg-logo-icon { width: 44px; height: 44px; background: var(--gp); border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+        .reg-logo-name { font-weight: 800; font-size: 1rem; background: var(--gp); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        .reg-headline { font-family: var(--fh); font-size: 2rem; font-weight: 700; line-height: 1.2; color: rgba(255,255,255,0.9); position: relative; z-index: 1; }
+        .reg-sub { font-size: 0.85rem; color: rgba(255,255,255,0.45); margin-top: 0.75rem; line-height: 1.6; position: relative; z-index: 1; }
+
+        .benefits { list-style: none; padding: 0; position: relative; z-index: 1; }
+        .benefits li {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.5rem 0; font-size: 0.84rem; color: rgba(255,255,255,0.65);
+        }
+        .benefits li span:first-child {
+            width: 26px; height: 26px;
+            background: rgba(0,214,143,0.12);
+            border: 1px solid rgba(0,214,143,0.2);
+            border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; flex-shrink: 0;
+        }
+
+        .reg-form-section {
+            padding: 2.5rem 3rem;
+            overflow-y: auto;
+            max-height: 95vh;
+        }
+
+        .form-header { margin-bottom: 2rem; }
+        .form-header h2 { font-family: var(--fh); font-size: 1.75rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .form-header p { font-size: 0.83rem; color: rgba(255,255,255,0.4); }
+
+        .steps {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 2rem;
+        }
+        .step-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .step-circle {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid var(--bs);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 700;
+            color: rgba(255,255,255,0.3);
+            position: relative; z-index: 1;
+        }
+        .step-item.active .step-circle {
+            background: var(--gp);
+            border-color: transparent;
+            color: #060b14;
+            box-shadow: 0 0 16px rgba(0,214,143,0.3);
+        }
+        .step-label { font-size: 0.65rem; color: rgba(255,255,255,0.3); margin-top: 0.35rem; }
+        .step-line { flex: 1; height: 1px; background: var(--bs); }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        .full-width { grid-column: span 2; }
+
+        .form-group { margin-bottom: 0.85rem; }
+        .input-wrapper { position: relative; }
+        .input-icon-left { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); font-size: 0.95rem; opacity: 0.4; pointer-events: none; }
+        .input-wrapper input, .input-wrapper select { padding-left: 2.8rem; }
+
+        .check-group { display: flex; align-items: flex-start; gap: 0.65rem; margin-bottom: 0.75rem; }
+        .check-group input[type="checkbox"] { width: auto; margin-top: 3px; accent-color: var(--p); }
+        .check-group label { font-size: 0.82rem; color: rgba(255,255,255,0.55); line-height: 1.5; text-transform: none; letter-spacing: 0; font-weight: 400; }
+        .check-group label a { color: var(--p); text-decoration: none; }
+
+        .login-prompt { text-align: center; margin-top: 1.5rem; font-size: 0.84rem; color: rgba(255,255,255,0.4); }
+        .login-prompt a { color: var(--p); text-decoration: none; font-weight: 600; }
+
+        @media (max-width: 900px) {
+            .register-wrap { grid-template-columns: 1fr; }
+            .reg-visual { display: none; }
+            .form-grid { grid-template-columns: 1fr; }
+            .full-width { grid-column: span 1; }
+            .reg-form-section { padding: 2rem 1.5rem; max-height: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="register-wrap">
+        <!-- Visual -->
+        <div class="reg-visual">
+            <div class="reg-logo">
+                <div class="reg-logo-icon">🌍</div>
+                <div>
+                    <div class="reg-logo-name">EcoTrack Pro</div>
+                    <div style="font-size:0.6rem;color:rgba(255,255,255,0.25);letter-spacing:0.12em;text-transform:uppercase;">Citizen Intelligence</div>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="reg-headline">Your journey to net zero starts here.</h2>
+                <p class="reg-sub">Join citizens worldwide reducing carbon footprints with AI-powered sustainability intelligence.</p>
+            </div>
+
+            <ul class="benefits">
+                <li><span>🤖</span><span>AI waste detection (Computer Vision)</span></li>
+                <li><span>📈</span><span>Predictive ML analytics & risk scoring</span></li>
+                <li><span>🌱</span><span>UN SDG 6, 7, 12, 13 alignment</span></li>
+                <li><span>🏆</span><span>Points, badges & global leaderboards</span></li>
+                <li><span>📅</span><span>Automated weekly email reports</span></li>
+                <li><span>📄</span><span>PDF reports for sharing & competition</span></li>
+                <li><span>👨‍👩‍👧</span><span>Family + individual tracking modes</span></li>
+                <li><span>🏪</span><span>Eco rewards marketplace</span></li>
+            </ul>
+
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.2);padding-top:1.5rem;border-top:1px solid var(--bs);">
+                🔒 Your data is secure and never sold to third parties
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="reg-form-section">
+            <div class="form-header">
+                <h2>Create Account</h2>
+                <p>Get started in under 2 minutes</p>
+            </div>
+
+            <!-- Progress Steps -->
+            <div class="steps">
+                <div class="step-item active">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Account</div>
+                </div>
+                <div class="step-line"></div>
+                <div class="step-item">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Profile</div>
+                </div>
+                <div class="step-line"></div>
+                <div class="step-item">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Done</div>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for category, message in messages %}
+            <div class="alert alert-{{ category }}" style="margin-bottom:1rem;">{{ message }}</div>
+            {% endfor %}{% endif %}
+            {% endwith %}
+
+            <form method="POST" id="regForm">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Email Address</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon-left">📧</span>
+                            <input type="email" name="email" placeholder="you@email.com" required autofocus>
+                        </div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon-left">🔒</span>
+                            <input type="password" name="password" id="regPassword" placeholder="Min. 8 characters" minlength="8" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Family / Household Name</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon-left">🏠</span>
+                            <input type="text" name="family_name" placeholder="The Green Family" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Members</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon-left">👥</span>
+                            <input type="number" name="members" placeholder="4" min="1" max="20" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>City / Location</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon-left">📍</span>
+                            <input type="text" name="location" placeholder="Chennai, India" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Location Type</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon-left">🏡</span>
+                            <select name="location_type" required>
+                                <option value="">Select type</option>
+                                <option value="Urban">Urban</option>
+                                <option value="Suburban">Suburban</option>
+                                <option value="Rural">Rural</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="check-group">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+                </div>
+                <div class="check-group">
+                    <input type="checkbox" id="newsletter">
+                    <label for="newsletter">Send me sustainability tips and weekly platform insights</label>
+                </div>
+
+                <button type="submit" style="width:100%;padding:1rem;font-size:0.95rem;margin-top:0.5rem;">
+                    🚀 Create Account & Start Tracking
+                </button>
+            </form>
+
+            <div class="login-prompt">
+                Already tracking? <a href="{{ url_for('login') }}">Sign in →</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('regForm').addEventListener('submit', (e) => {
+            const members = parseInt(document.querySelector('[name="members"]').value);
+            if (members < 1 || members > 20) {
+                e.preventDefault();
+                alert('Number of members must be between 1 and 20');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+{% block page_title %}
+<h1 class="page-title"><span class="float">🌍</span> <span data-i18n="dashboard">Dashboard</span></h1>
+{% endblock %}
+
+{% block content %}
+<style>
+.hero-banner{position:relative;background:linear-gradient(135deg,rgba(6,255,165,0.09),rgba(0,212,255,0.05));border:1px solid var(--bp);border-radius:24px;padding:2.5rem;margin-bottom:1.4rem;overflow:hidden;}
+.hero-banner::before{content:"🌿";position:absolute;font-size:17rem;right:-2.5rem;top:-5rem;opacity:0.05;animation:float 8s ease-in-out infinite;pointer-events:none;}
+.hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1.5rem;margin-top:2rem;position:relative;z-index:1;}
+.hero-stat h4{font-size:0.66rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.35);margin-bottom:0.36rem;}
+.hero-stat h2{font-family:var(--fh);font-size:1.9rem;font-weight:800;line-height:1;}
+
+/* INPUT */
+.input-section{background:var(--c);border:1px solid var(--bs);border-radius:20px;padding:1.65rem;margin-bottom:1.4rem;transition:border-color 0.3s;}
+.input-section:focus-within{border-color:var(--bp);}
+.input-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.85rem;margin-bottom:0.9rem;}
+.input-group{position:relative;}
+.input-icon{position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);font-size:1rem;pointer-events:none;}
+.input-group input{padding-left:2.85rem;}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--bp);border-radius:16px;padding:2.2rem;text-align:center;background:rgba(6,255,165,0.02);transition:all 0.3s var(--es);cursor:pointer;}
+.upload-zone:hover{border-color:var(--p);background:rgba(6,255,165,0.05);transform:translateY(-2px);}
+
+/* SCORE RING */
+.score-ring{position:relative;width:160px;height:160px;margin:0 auto 1.2rem;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-ring-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-num{font-family:var(--fh);font-size:2.5rem;font-weight:800;line-height:1;}
+
+/* RISK */
+.risk-pill{display:flex;align-items:center;justify-content:center;gap:0.7rem;padding:0.9rem 1.5rem;border-radius:13px;font-weight:800;font-size:0.86rem;text-transform:uppercase;letter-spacing:0.06em;}
+
+/* BILL */
+.bill-extracted{background:linear-gradient(135deg,rgba(255,201,71,0.09),rgba(255,159,28,0.04));border:1px solid rgba(255,201,71,0.28);border-radius:18px;padding:1.5rem;animation:alertIn 0.4s var(--ee) both;}
+
+/* CHALLENGES */
+.challenges-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.9rem;}
+</style>
+
+<!-- HERO -->
+<div class="hero-banner">
+  <div style="position:relative;z-index:1;">
+    <div class="ai-badge">🤖 AI-Powered Citizen Intelligence Platform</div>
+    <h2 style="font-family:var(--fh);font-size:1.65rem;margin-bottom:0.5rem;">Environmental Impact Command Center</h2>
+    <p style="color:rgba(255,255,255,0.48);font-size:0.87rem;max-width:560px;">Log manually, scan a utility bill, or use AI photo detection. ML models quantify your impact across UN SDGs and generate personalised action plans.</p>
+    <div class="streak-row" style="margin-top:1.5rem;max-width:340px;">
+      <span class="streak-flame" style="font-size:1.5rem;">🔥</span>
+      <div><div style="font-size:0.68rem;color:rgba(255,255,255,0.38);text-transform:uppercase;letter-spacing:0.1em;">Streak</div><div style="font-weight:800;font-size:1rem;color:var(--fire);">Log every day to maintain your streak!</div></div>
+    </div>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><h4>Score</h4><h2 class="text-gradient">{{ score|default(0) }}</h2></div>
+    <div class="hero-stat"><h4>CO₂ Saved</h4><h2 class="text-gradient">{{ co2_saved|default(0) }}<span style="font-size:1rem;opacity:0.5;">kg</span></h2></div>
+    <div class="hero-stat"><h4>Eco Points</h4><h2 class="text-gradient">{{ current_user.eco_points|default(0) }}</h2></div>
+    <div class="hero-stat"><h4>Daily Avg</h4><h2 class="text-gradient">{{ daily_avg|default(0) }}</h2></div>
+  </div>
+</div>
+
+<!-- QUICK STATS -->
+<div class="grid">
+  <div class="stat-card"><h3>💧 Water CO₂</h3><h2>{{ water_co2|default(0) }}<span style="font-size:1rem;opacity:0.5;">kg</span></h2><p class="subtitle">SDG 6</p></div>
+  <div class="stat-card"><h3>⚡ Energy CO₂</h3><h2>{{ energy_co2|default(0) }}<span style="font-size:1rem;opacity:0.5;">kg</span></h2><p class="subtitle">SDG 7</p></div>
+  <div class="stat-card"><h3>🗑️ Waste CO₂</h3><h2>{{ waste_co2|default(0) }}<span style="font-size:1rem;opacity:0.5;">kg</span></h2><p class="subtitle">SDG 12</p></div>
+  <div class="stat-card"><h3>🌡️ Total CO₂</h3><h2>{{ co2|default(0) }}<span style="font-size:1rem;opacity:0.5;">kg</span></h2><p class="subtitle">SDG 13</p></div>
+</div>
+
+<!-- DATA ENTRY SECTION -->
+<div class="input-section">
+  <h3><span data-i18n="logimpact">Log Your Impact</span></h3>
+  <p style="font-size:0.8rem;color:rgba(255,255,255,0.35);margin-bottom:1.2rem;">Choose your preferred input method</p>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('manual')">⌨️ <span data-i18n="manual">Manual</span></button>
+    <button class="tab-btn" onclick="switchTab('ai')">🤖 <span data-i18n="aiphoto">AI Photo</span></button>
+    <button class="tab-btn" onclick="switchTab('bill')">📄 <span data-i18n="bill">Bill Upload</span></button>
+  </div>
+
+  <!-- MANUAL TAB -->
+  <div class="tab-panel active" id="tab-manual">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="input-grid">
+        <div class="input-group"><span class="input-icon">💧</span><input type="number" name="water" placeholder="Water Usage (litres)" step="0.1" required></div>
+        <div class="input-group"><span class="input-icon">⚡</span><input type="number" name="electricity" placeholder="Electricity (kWh)" step="0.1" required></div>
+        <div class="input-group"><span class="input-icon">🗑️</span><input type="number" name="waste" placeholder="Waste Generated (kg)" step="0.1" required></div>
+      </div>
+      <input type="hidden" name="use_ai_detection" value="false">
+      <button type="submit" style="width:100%;padding:1rem;font-size:0.94rem;" data-i18n-attr="analyze">🚀 <span data-i18n="analyze">Analyze My Impact</span></button>
+    </form>
+  </div>
+
+  <!-- AI PHOTO TAB -->
+  <div class="tab-panel" id="tab-ai">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="input-grid">
+        <div class="input-group"><span class="input-icon">💧</span><input type="number" name="water" placeholder="Water Usage (litres)" step="0.1" required></div>
+        <div class="input-group"><span class="input-icon">⚡</span><input type="number" name="electricity" placeholder="Electricity (kWh)" step="0.1" required></div>
+      </div>
+      <div class="upload-zone" onclick="document.getElementById('wasteImg').click()" id="aiZone">
+        <span style="font-size:2.5rem;display:block;margin-bottom:0.75rem;">📸</span>
+        <h4 id="aiZoneLabel" style="font-weight:700;margin-bottom:0.35rem;">Upload Waste Bin Photo</h4>
+        <p style="font-size:0.79rem;color:rgba(255,255,255,0.35);">Computer Vision AI estimates waste weight from bin fill level</p>
+        <input type="file" name="waste_image" id="wasteImg" accept="image/*" style="display:none;">
+      </div>
+      <input type="hidden" name="use_ai_detection" value="true">
+      <button type="submit" style="width:100%;padding:1rem;margin-top:1rem;">🤖 AI Analyze</button>
+    </form>
+  </div>
+
+  <!-- BILL UPLOAD TAB -->
+  <div class="tab-panel" id="tab-bill">
+    <div class="bill-drop" id="billDrop" onclick="document.getElementById('billFile').click()">
+      <span style="font-size:3rem;display:block;margin-bottom:0.75rem;">📄</span>
+      <h4 id="billDropLabel" style="font-weight:700;font-size:1rem;margin-bottom:0.4rem;">Drop your utility bill here</h4>
+      <p style="font-size:0.8rem;color:rgba(255,255,255,0.35);">Electricity bill · Water bill · Gas bill (JPG, PNG, PDF)</p>
+      <p style="font-size:0.74rem;color:rgba(255,201,71,0.65);margin-top:0.5rem;">⚡ AI reads numbers automatically</p>
+      <input type="file" id="billFile" accept=".jpg,.jpeg,.png,.pdf" style="display:none;" onchange="processBill(this)">
+    </div>
+
+    <!-- Processing spinner -->
+    <div id="billSpinner" style="display:none;text-align:center;padding:3rem;">
+      <div class="loader" style="margin:0 auto 1rem;"></div>
+      <p style="color:rgba(255,255,255,0.4);font-size:0.84rem;">AI is reading your bill...</p>
+    </div>
+
+    <!-- Extracted values -->
+    <div id="billResult" style="display:none;">
+      <div class="bill-extracted">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.2rem;">
+          <span style="font-size:1.5rem;">✅</span>
+          <div>
+            <div style="font-weight:800;font-size:0.93rem;color:var(--gold);" data-i18n="billparsed">Bill Parsed!</div>
+            <div style="font-size:0.74rem;color:rgba(255,255,255,0.38);" id="billFileName">—</div>
+          </div>
+        </div>
+
+        <div class="extracted-row">
+          <span>💧 Water Consumption</span>
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <input type="number" id="bWater" style="width:100px;padding:0.38rem 0.6rem;font-size:0.84rem;" step="0.1">
+            <span style="font-size:0.76rem;color:rgba(255,255,255,0.36);">litres</span>
+          </div>
+        </div>
+        <div class="extracted-row">
+          <span>⚡ Electricity Units</span>
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <input type="number" id="bElec" style="width:100px;padding:0.38rem 0.6rem;font-size:0.84rem;" step="0.1">
+            <span style="font-size:0.76rem;color:rgba(255,255,255,0.36);">kWh</span>
+          </div>
+        </div>
+        <div class="extracted-row">
+          <span>🗑️ Waste Generated</span>
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <input type="number" id="bWaste" style="width:100px;padding:0.38rem 0.6rem;font-size:0.84rem;" step="0.1">
+            <span style="font-size:0.76rem;color:rgba(255,255,255,0.36);">kg</span>
+          </div>
+        </div>
+
+        <p style="font-size:0.75rem;color:rgba(255,255,255,0.3);margin:0.8rem 0;font-style:italic;" data-i18n="billreview">Review & correct values if needed</p>
+
+        <!-- Hidden form for actual submission -->
+        <form method="POST" enctype="multipart/form-data" id="billSubmitForm">
+          <input type="hidden" name="water" id="bWaterH">
+          <input type="hidden" name="electricity" id="bElecH">
+          <input type="hidden" name="waste" id="bWasteH">
+          <input type="hidden" name="use_ai_detection" value="false">
+          <button type="button" onclick="submitBill()" class="btn-gold" style="width:100%;padding:1rem;font-size:0.93rem;">
+            📊 <span data-i18n="analyze">Analyze Bill Data</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI DETECTION RESULT -->
+{% if fill_percent and fill_percent > 0 %}
+<div class="card" style="border-color:var(--bp);">
+  <div class="ai-badge">🤖 Computer Vision Results</div>
+  <h3>Waste Detection</h3>
+  <div class="grid">
+    <div class="stat-card"><h3>Detected Waste</h3><h2>{{ waste }}<span style="font-size:1rem;opacity:0.5;">kg</span></h2></div>
+    <div class="stat-card"><h3>Fill Level</h3><h2>{{ fill_percent }}%</h2><div class="progress-container" style="margin-top:0.7rem;"><div class="progress-bar" style="width:{{ fill_percent }}%;"></div></div></div>
+    <div class="stat-card"><h3>Waste Type</h3><h2 style="font-size:1.1rem;">{{ waste_type|default('Mixed') }}</h2><div class="badge badge-success" style="margin-top:0.5rem;">AI Detected</div></div>
+  </div>
+</div>
+{% endif %}
+
+<!-- SCORE + RISK -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.35rem;margin-bottom:1.4rem;">
+  <div class="card" style="text-align:center;">
+    <h3>🎯 Sustainability Score</h3>
+    <div class="score-ring">
+      <svg width="160" height="160">
+        <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+        <circle id="scoreArc" cx="80" cy="80" r="68" fill="none" stroke="url(#sg)" stroke-width="10" stroke-dasharray="427" stroke-dashoffset="427" stroke-linecap="round" style="transition:stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1)"/>
+        <defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#06ffa5"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs>
+      </svg>
+      <div class="score-ring-val">
+        <div class="score-num text-gradient">{{ score|default(0) }}</div>
+        <div style="font-size:0.65rem;color:rgba(255,255,255,0.32);">/100</div>
+      </div>
+    </div>
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);">
+      {% if score|default(0) >= 75 %}🌟 Outstanding!{% elif score|default(0) >= 50 %}💪 Good — push further!{% else %}📈 Room to improve{% endif %}
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>🚨 Risk Assessment</h3>
+    <div class="risk-pill {% if score|default(0) >= 75 %}risk-low{% elif score|default(0) >= 50 %}risk-mid{% else %}risk-high{% endif %}" style="margin:1.2rem 0;border-radius:12px;">
+      {% if score|default(0) >= 75 %}✅ LOW — Sustainable{% elif score|default(0) >= 50 %}⚠️ MODERATE{% else %}🚨 HIGH — Critical{% endif %}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-top:0.5rem;">
+      <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:0.9rem;text-align:center;">
+        <div style="font-size:0.63rem;color:rgba(255,255,255,0.32);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">Daily Avg</div>
+        <div class="text-gradient" style="font-family:var(--fh);font-size:1.5rem;font-weight:800;">{{ daily_avg|default(0) }}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:0.9rem;text-align:center;">
+        <div style="font-size:0.63rem;color:rgba(255,255,255,0.32);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">CO₂ Today</div>
+        <div style="font-family:var(--fh);font-size:1.5rem;font-weight:800;color:{% if co2|default(0) > 10 %}var(--danger){% else %}var(--p){% endif %};">{{ co2|default(0) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CARBON CHART -->
+<div class="card">
+  <h3>📊 Carbon Breakdown</h3>
+  <div style="height:240px;position:relative;"><canvas id="carbonChart"></canvas></div>
+</div>
+
+<!-- ML CARD -->
+<div class="ml-card">
+  <div class="ai-badge">🧠 ML Risk Model — Predictive Analytics</div>
+  <h3 style="color:rgba(255,255,255,0.88);margin-bottom:1.2rem;">Risk Probability Analysis</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:1.2rem;">
+    {% set wR = [[water|default(0)*0.02,100]|min,0]|max %}
+    {% set eR = [[electricity|default(0)*5,100]|min,0]|max %}
+    {% set waR = [[waste|default(0)*10,100]|min,0]|max %}
+    {% set oR = [[100-(score|default(50)),100]|min,0]|max %}
+    {% for lbl,pct,col in [('💧 Water Risk',wR,'linear-gradient(90deg,#00d4ff,#4361ee)'),('⚡ Energy Risk',eR,'linear-gradient(90deg,#ffbe0b,#ff6b35)'),('🗑️ Waste Risk',waR,'linear-gradient(90deg,#ff3a6e,#c9184a)'),('🌡️ Overall Risk',oR,'var(--gp)')] %}
+    <div>
+      <div class="ml-bar-label"><span class="ml-bar-name">{{ lbl }}</span><span class="ml-bar-pct">{{ pct|int }}%</span></div>
+      <div class="progress-container"><div class="progress-bar" style="width:{{ pct }}%;background:{{ col }};"></div></div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- AI SUGGESTIONS — UPGRADED -->
+<div class="card" style="background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(0,212,255,0.06));border-color:rgba(168,85,247,0.22);">
+  <div class="ai-badge">🧠 Advanced AI Suggestions</div>
+  <h3 data-i18n="aisuggestions">AI Suggestions</h3>
+
+  <div class="view-toggle">
+    <button class="toggle-option active" onclick="showSugView('family')" id="sugFBtn">🏠 Family Plan</button>
+    <button class="toggle-option" onclick="showSugView('individual')" id="sugIBtn">👤 Individual</button>
+    <button class="toggle-option" onclick="showSugView('quick')" id="sugQBtn">⚡ Quick Wins</button>
+  </div>
+
+  <div id="sugFamily">
+    {% set sugs=[
+      ('💧','w','Fix dripping taps immediately — a dripping tap wastes 5,500L/year, emitting ~1.65 kg CO₂','Saves ~1.65 kg CO₂/yr'),
+      ('⚡','e','Shift heavy appliances (washer, dishwasher) to off-peak hours (10pm–6am)','Saves ~0.3 kWh/day'),
+      ('🗑️','wt','Use a 3-bin system: Dry/Wet/Hazardous — increases recycling rate by 60%','Reduces landfill by ~0.6 kg/day'),
+      ('🌱','g','Set your thermostat 1°C lower — saves 3% energy per degree','Saves ~0.6 kg CO₂/week'),
+      ('💡','e','Replace halogen bulbs with LED — 75% less energy and last 25x longer','Saves ~0.45 kWh/day'),
+      ('🚿','w','Install a low-flow showerhead — reduces water use by 50% with same pressure','Saves ~40L/shower'),
+    ]%}
+    {% for icon,type,title,impact in sugs %}
+    <div class="sug-item" style="animation-delay:{{ loop.index0 * 0.07 }}s;">
+      <div class="sug-icon sug-icon-{% if type=='w'%}w{% elif type=='e'%}e{% elif type=='wt'%}wt{% else%}g{% endif %}">{{ icon }}</div>
+      <div>
+        <div class="sug-title">{{ title }}</div>
+        <div class="sug-impact">📈 {{ impact }}</div>
+      </div>
+    </div>
+    {% endfor %}
+    {% if family_recommendations %}
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--bs);">
+      <div class="ai-badge" style="margin-bottom:0.75rem;">⚡ AI-Generated for Your Data</div>
+      {% for rec in family_recommendations %}
+      <div class="sug-item"><div class="sug-icon sug-icon-g">🌿</div><div><div class="sug-title">{{ rec }}</div></div></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div id="sugIndividual" style="display:none;">
+    <div class="grid" style="margin-bottom:1rem;">
+      <div class="stat-card"><h3>Individual CO₂</h3><h2>{{ individual_co2|default(0) }}kg</h2><p class="subtitle">Per person today</p></div>
+      <div class="stat-card"><h3>Ind. Score</h3><h2 class="text-gradient">{{ individual_score|default(0) }}</h2></div>
+      <div class="stat-card"><h3>Risk Level</h3><h2 style="font-size:1rem;">{{ individual_risk_level|default('—') }}</h2></div>
+    </div>
+    {% for rec in individual_recommendations %}
+    <div class="sug-item"><div class="sug-icon sug-icon-g">⚡</div><div><div class="sug-title">{{ rec }}</div></div></div>
+    {% else %}
+    <div class="sug-item"><div class="sug-icon sug-icon-g">📊</div><div><div class="sug-title">Log data above for personalised individual recommendations</div></div></div>
+    {% endfor %}
+  </div>
+
+  <div id="sugQuick" style="display:none;">
+    {% set qsugs=[
+      ('🥗','Skip one meat meal this week → saves ~2.5 kg CO₂','High Impact','2.5 kg CO₂'),
+      ('🚶','Walk/cycle for trips under 2km → saves 0.4 kg CO₂ per trip','Easy','0.4 kg/trip'),
+      ('🪴','Plant one tree this month → absorbs ~21 kg CO₂/year','Long-Term','21 kg CO₂/yr'),
+      ('🧊','Full fridge uses 15% less energy — keep yours at 85%','Easy','0.1 kWh/day'),
+      ('☀️','Air-dry laundry instead of tumble drying — saves 2.4 kWh/load','Easy','2.4 kWh/load'),
+      ('🛒','Shop local for groceries → cuts transport CO₂ by 80%','Medium','~0.8 kg/week'),
+    ]%}
+    {% for icon,desc,diff,saving in qsugs %}
+    <div class="sug-item" style="animation-delay:{{ loop.index0*0.07 }}s;">
+      <div class="sug-icon sug-icon-g" style="font-size:1.3rem;">{{ icon }}</div>
+      <div style="flex:1;">
+        <div class="sug-title">{{ desc }}</div>
+        <div style="display:flex;gap:0.5rem;margin-top:0.3rem;flex-wrap:wrap;">
+          <div class="sug-impact">💚 {{ saving }}</div>
+          <div class="badge badge-{% if diff=='Easy'%}success{% elif diff=='Medium'%}warning{% else%}info{% endif %}" style="font-size:0.6rem;">{{ diff }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- SDG ALIGNMENT -->
+<div class="card">
+  <h3>🌱 UN SDG Alignment</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1rem;margin-top:0.5rem;">
+    {% for sdg_num,sdg_name,val,bc in [(6,'Clean Water',water_co2|default(0),'badge-info'),(7,'Clean Energy',energy_co2|default(0),'badge-warning'),(12,'Responsible Use',waste_co2|default(0),'badge-danger'),(13,'Climate Action',co2|default(0),'badge-success')] %}
+    <div class="sdg-card">
+      <img src="https://sdgs.un.org/sites/default/files/goals/E_SDG_Icons-{{ '%02d'|format(sdg_num) }}.jpg" alt="SDG {{ sdg_num }}" style="width:72px;height:72px;border-radius:8px;margin:0 auto 0.6rem;display:block;">
+      <div style="font-size:0.67rem;color:rgba(255,255,255,0.42);margin-bottom:0.3rem;">{{ sdg_name }}</div>
+      <div class="badge {{ bc }}">{{ val }} kg</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- WEEKLY CHALLENGES -->
+<div class="card">
+  <h3 data-i18n="challenges">Weekly Challenges</h3>
+  <div class="challenges-grid">
+    {% for icon,title,desc,pct,reward,achDesc in [
+      ('💧','Water Warrior','Under 100L/day for 7 days',65,50,'You saved 450L this week!'),
+      ('⚡','Energy Saver','Under 5kWh/day',40,75,'Cut 10kWh this week!'),
+      ('🗑️','Zero Waste Week','Under 0.5 kg/day',80,100,'Diverted 1.5kg from landfill!'),
+      ('🌱','Green Streak','Log every day this week',85,30,'7-day logging streak!'),
+    ] %}
+    <div class="challenge-item" onclick="showToastAch('{{ icon }}','{{ title }}','{{ achDesc }}')">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+        <span style="font-size:1.7rem;">{{ icon }}</span>
+        <div><div style="font-weight:700;font-size:0.88rem;">{{ title }}</div><div style="font-size:0.74rem;color:rgba(255,255,255,0.38);">{{ desc }}</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.32rem;"><span style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Progress</span><span style="font-size:0.7rem;font-weight:800;color:var(--p);">{{ pct }}%</span></div>
+      <div class="progress-container"><div class="progress-bar" style="width:{{ pct }}%;"></div></div>
+      <div class="badge badge-gold" style="margin-top:0.75rem;">🏆 +{{ reward }} pts</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- REAL WORLD -->
+<div class="realworld-card">
+  <div class="realworld-emoji">🚗</div>
+  <div>
+    <div class="ai-badge" style="background:rgba(0,212,255,0.07);border-color:rgba(0,212,255,0.22);color:var(--p2);">Real-World Equivalence</div>
+    <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin:0.5rem 0 0.22rem;">Today's <strong style="color:white;">{{ co2|default(0) }} kg CO₂</strong> footprint equals:</p>
+    <h2 class="text-gradient" style="font-family:var(--fh);font-size:1.7rem;">Driving {{ car_km|default(0) }} km by car</h2>
+    <p class="text-muted" style="font-size:0.73rem;margin-top:0.35rem;">Based on 0.2 kg CO₂/km average petrol vehicle</p>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(name){
+  const tabs=['manual','ai','bill'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+function showSugView(v){
+  ['family','individual','quick'].forEach(n=>{document.getElementById('sug'+n.charAt(0).toUpperCase()+n.slice(1)).style.display=n===v?'block':'none';});
+  document.getElementById('sugFBtn').classList.toggle('active',v==='family');
+  document.getElementById('sugIBtn').classList.toggle('active',v==='individual');
+  document.getElementById('sugQBtn').classList.toggle('active',v==='quick');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  // Score ring animation
+  const score={{ score|default(0) }};
+  const arc=document.getElementById('scoreArc');
+  if(arc)setTimeout(()=>{arc.style.strokeDashoffset=427-(score/100)*427;},220);
+
+  // Auto-trigger toasts/winner/loser based on score
+  {% if score is defined and score > 0 %}
+  setTimeout(()=>showToastScore({{ score }}),1200);
+  {% if score >= 90 %}
+  setTimeout(()=>showWinner('🏆 Eco Champion!','Score {{ score }}/100 — Outstanding!','You are in the top 5% of all families 🌿'),1800);
+  {% elif score >= 75 %}
+  setTimeout(()=>showToastAch('🌟','Eco Achiever','Score {{ score }}/100 — Great work!'),2000);
+  {% elif score < 30 %}
+  setTimeout(()=>showLoser('📉 High Risk Zone','Your score is {{ score }}/100','Reduce shower time by 2 min to save 30L/day'),2000);
+  {% endif %}
+  {% endif %}
+
+  // Carbon chart
+  const ctx=document.getElementById('carbonChart');
+  if(ctx){
+    new Chart(ctx,{type:'bar',data:{
+      labels:['💧 Water','⚡ Electricity','🗑️ Waste'],
+      datasets:[{label:'CO₂ (kg)',data:[{{ water_co2|default(0) }},{{ energy_co2|default(0) }},{{ waste_co2|default(0) }}],backgroundColor:['rgba(0,212,255,0.7)','rgba(255,190,11,0.7)','rgba(255,58,110,0.7)'],borderColor:['#00d4ff','#ffbe0b','#ff3a6e'],borderWidth:2,borderRadius:10,borderSkipped:false}]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'}},x:{grid:{display:false}}},animation:{duration:900,easing:'easeOutQuart'}}});
+  }
+
+  // AI photo upload feedback
+  document.getElementById('wasteImg')?.addEventListener('change',e=>{
+    if(e.target.files[0]){
+      document.getElementById('aiZoneLabel').textContent='✅ '+e.target.files[0].name;
+      document.getElementById('aiZone').style.borderColor='var(--p)';
+      document.getElementById('aiZone').style.background='rgba(6,255,165,0.05)';
+    }
+  });
+
+  // Bill drag-and-drop
+  const drop=document.getElementById('billDrop');
+  if(drop){
+    ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('dragging');}));
+    ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('dragging');}));
+    drop.addEventListener('drop',e=>{
+      const f=e.dataTransfer.files[0];
+      if(f){const dt=new DataTransfer();dt.items.add(f);const inp=document.getElementById('billFile');inp.files=dt.files;processBill(inp);}
+    });
+  }
+});
+
+// ── BILL PROCESSING ENGINE ──
+function processBill(input){
+  if(!input.files[0])return;
+  const file=input.files[0];
+  document.getElementById('billDropLabel').textContent='📄 '+file.name;
+  document.getElementById('billFileName').textContent=file.name;
+  document.getElementById('billDrop').style.display='none';
+  document.getElementById('billSpinner').style.display='block';
+  document.getElementById('billResult').style.display='none';
+
+  // Simulate OCR processing (replace with real Flask /ocr endpoint in production)
+  // In production: send file to backend, get extracted values back
+  const seed=file.name.length+file.size;
+  setTimeout(()=>{
+    document.getElementById('billSpinner').style.display='none';
+    document.getElementById('billResult').style.display='block';
+
+    // Demo extraction based on file metadata
+    // Real version: POST to /api/ocr-bill and parse response
+    const vals=extractBillValues(seed);
+    document.getElementById('bWater').value=vals.water;
+    document.getElementById('bElec').value=vals.elec;
+    document.getElementById('bWaste').value=vals.waste;
+
+    showToastAch('📄','Bill Uploaded!','AI extracted: '+vals.water+'L water, '+vals.elec+'kWh electricity');
+  },2400);
+}
+
+function extractBillValues(seed){
+  // Demo values — in production replace with OCR backend response
+  return{
+    water:Math.round((90+(seed%70))*10)/10,
+    elec: Math.round((4+(seed%10))*10)/10,
+    waste:Math.round((0.8+(seed%4)*0.3)*10)/10
+  };
+}
+
+function submitBill(){
+  document.getElementById('bWaterH').value=document.getElementById('bWater').value;
+  document.getElementById('bElecH').value=document.getElementById('bElec').value;
+  document.getElementById('bWasteH').value=document.getElementById('bWaste').value;
+  document.getElementById('billSubmitForm').submit();
+}
+</script>
+{% endblock %}

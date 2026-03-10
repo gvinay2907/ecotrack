@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+<h1 class="page-title"><span class="float">📊</span> Analytics</h1>
+{% endblock %}
+
+{% block content %}
+<style>
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .chart-panel {
+        background: var(--c);
+        border: 1px solid var(--bs);
+        border-radius: 18px;
+        padding: 1.25rem;
+        height: 260px;
+        position: relative;
+        transition: border-color 0.3s;
+    }
+    .chart-panel:hover { border-color: var(--bp); }
+    .chart-panel-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255,255,255,0.5);
+        margin-bottom: 1rem;
+    }
+    .time-selector {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .time-option {
+        padding: 0.5rem 1.25rem;
+        background: var(--c);
+        border: 1px solid var(--bs);
+        color: rgba(255,255,255,0.5);
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: all 0.25s ease;
+    }
+    .time-option.active, .time-option:hover {
+        background: var(--gp);
+        color: #060b14;
+        border-color: transparent;
+    }
+    .insight-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .insight-chip {
+        background: var(--c);
+        border: 1px solid var(--bs);
+        border-radius: 14px;
+        padding: 1.25rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s ease;
+    }
+    .insight-chip:hover { border-color: var(--bp); transform: translateY(-2px); }
+    .insight-chip .label {
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+        color: rgba(255,255,255,0.35); margin-bottom: 0.5rem;
+    }
+    .insight-chip .value {
+        font-family: var(--fh); font-size: 1.8rem; font-weight: 700; line-height: 1;
+    }
+    .insight-chip .sub { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-top: 0.3rem; }
+</style>
+
+<!-- Time Filter -->
+<div class="time-selector">
+    <button class="time-option active" id="t7">7 Days</button>
+    <button class="time-option" id="t30">30 Days</button>
+    <button class="time-option" id="t90">3 Months</button>
+</div>
+
+<!-- Key Metrics Row -->
+<div class="insight-row">
+    <div class="insight-chip">
+        <div class="label">Avg Score</div>
+        <div class="value text-gradient">{{ avg_score|default(0)|round(1) }}</div>
+        <div class="sub">Sustainability rating</div>
+    </div>
+    <div class="insight-chip">
+        <div class="label">Total CO₂</div>
+        <div class="value text-gradient">{{ total_co2|default(0)|round(1) }}<span style="font-size:1rem;opacity:0.6;"> kg</span></div>
+        <div class="sub">This period</div>
+    </div>
+    <div class="insight-chip">
+        <div class="label">Best Day</div>
+        <div class="value text-gradient">{{ best_day_score|default(0)|round(1) }}</div>
+        <div class="sub">Peak performance</div>
+    </div>
+    <div class="insight-chip">
+        <div class="label">Improvement</div>
+        <div class="value" style="color:{% if improvement|default(0) >= 0 %}var(--p){% else %}var(--danger){% endif %};">
+            {% if improvement|default(0) >= 0 %}↗{% else %}↘{% endif %} {{ improvement|default(0)|abs|round(1) }}%
+        </div>
+        <div class="sub">vs previous period</div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="analytics-grid">
+    <div class="chart-panel" style="grid-column: span 2;">
+        <div class="chart-panel-title">📈 Sustainability Score Trend</div>
+        <canvas id="trendChart" style="height:200px;"></canvas>
+    </div>
+    <div class="chart-panel">
+        <div class="chart-panel-title">🥧 CO₂ Distribution</div>
+        <canvas id="pieChart"></canvas>
+    </div>
+</div>
+
+<div class="analytics-grid">
+    <div class="chart-panel">
+        <div class="chart-panel-title">📊 Daily CO₂ (kg)</div>
+        <canvas id="co2Chart"></canvas>
+    </div>
+    <div class="chart-panel">
+        <div class="chart-panel-title">💧 Water vs Energy vs Waste</div>
+        <canvas id="radarChart"></canvas>
+    </div>
+    <div class="chart-panel">
+        <div class="chart-panel-title">🎯 Weekly Performance</div>
+        <canvas id="weeklyChart"></canvas>
+    </div>
+</div>
+
+<!-- SDG Radar section -->
+<div class="card">
+    <h3>🌱 SDG Impact Radar</h3>
+    <div style="max-width:380px;margin:0 auto;height:320px;position:relative;">
+        <canvas id="sdgRadar"></canvas>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const dates  = {{ dates  | tojson | safe }};
+const scores = {{ scores | tojson | safe }};
+const co2Vals= {{ co2_values | tojson | safe }};
+const totalW = {{ total_water  | default(0) }};
+const totalE = {{ total_energy | default(0) }};
+const totalWaste = {{ total_waste  | default(0) }};
+
+const commonY = { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.45)' } };
+const commonX = { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.45)', maxRotation: 0 } };
+
+// 1. Trend line
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: dates.length ? dates : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        datasets: [{
+            label: 'Score',
+            data: scores.length ? scores : [65,70,60,80,75,88,82],
+            borderColor: '#00d68f', borderWidth: 2.5,
+            pointRadius: 4, pointBackgroundColor: '#00d68f', pointBorderColor: '#060b14', pointBorderWidth: 2,
+            tension: 0.4,
+            fill: true,
+            backgroundColor: (ctx) => {
+                const g = ctx.chart.ctx.createLinearGradient(0,0,0,200);
+                g.addColorStop(0,'rgba(0,214,143,0.18)');
+                g.addColorStop(1,'rgba(0,214,143,0)');
+                return g;
+            }
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 900 },
+        plugins: { legend: { display: false } }, scales: { y: commonY, x: commonX } }
+});
+
+// 2. Pie
+const pieOpts = { responsive: true, maintainAspectRatio: false, animation: { duration: 700 },
+    plugins: {
+        legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.55)', boxWidth: 10, padding: 12, font: { size: 11 } } }
+    }
+};
+new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Water','Energy','Waste'],
+        datasets: [{ data: [Math.max(totalW,1), Math.max(totalE,1), Math.max(totalWaste,1)],
+            backgroundColor: ['rgba(76,201,240,0.8)','rgba(255,190,11,0.8)','rgba(255,77,109,0.8)'],
+            borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: { ...pieOpts, cutout: '65%' }
+});
+
+// 3. CO₂ bars
+new Chart(document.getElementById('co2Chart'), {
+    type: 'bar',
+    data: {
+        labels: dates.length ? dates : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        datasets: [{
+            label: 'CO₂ kg',
+            data: co2Vals.length ? co2Vals : [2.1,3.4,1.8,2.5,3.0,1.5,2.2],
+            backgroundColor: 'rgba(255,77,109,0.65)',
+            borderColor: '#ff4d6d', borderWidth: 1.5, borderRadius: 6, borderSkipped: false
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 700 },
+        plugins: { legend: { display: false } }, scales: { y: commonY, x: commonX } }
+});
+
+// 4. Radar
+new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+        labels: ['Water','Energy','Waste','Score','Consistency'],
+        datasets: [{
+            label: 'Your Impact',
+            data: [Math.min(totalW/10,100), Math.min(totalE*5,100), Math.min(totalWaste*10,100), {{ avg_score|default(50) }}, 70],
+            borderColor: '#00d68f', backgroundColor: 'rgba(0,214,143,0.12)',
+            pointBackgroundColor: '#00d68f', borderWidth: 2, pointRadius: 3
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { r: { grid: { color: 'rgba(255,255,255,0.08)' }, ticks: { display: false },
+            pointLabels: { color: 'rgba(255,255,255,0.55)', font: { size: 11 } } } },
+        plugins: { legend: { display: false } }
+    }
+});
+
+// 5. Weekly bar
+new Chart(document.getElementById('weeklyChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        datasets: [{
+            label: 'Score',
+            data: scores.slice(-7).length ? scores.slice(-7) : [72,68,80,75,88,65,79],
+            backgroundColor: (ctx) => {
+                const v = ctx.raw;
+                return v >= 75 ? 'rgba(0,214,143,0.7)' : v >= 50 ? 'rgba(255,190,11,0.7)' : 'rgba(255,77,109,0.7)';
+            },
+            borderRadius: 8, borderSkipped: false
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 700 },
+        plugins: { legend: { display: false } }, scales: { y: { ...commonY, max: 100 }, x: commonX } }
+});
+
+// 6. SDG Radar
+new Chart(document.getElementById('sdgRadar'), {
+    type: 'radar',
+    data: {
+        labels: ['SDG 6\nWater','SDG 7\nEnergy','SDG 12\nWaste','SDG 13\nClimate','SDG 3\nHealth','SDG 11\nCities'],
+        datasets: [{
+            label: 'Your Alignment',
+            data: [78, 65, 82, 70, 60, 74],
+            borderColor: '#4cc9f0', backgroundColor: 'rgba(76,201,240,0.1)',
+            pointBackgroundColor: '#4cc9f0', borderWidth: 2, pointRadius: 4
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { r: { grid: { color: 'rgba(255,255,255,0.08)' }, ticks: { display: false, maxTicksLimit: 5 },
+            pointLabels: { color: 'rgba(255,255,255,0.55)', font: { size: 10 } }, min: 0, max: 100 } },
+        plugins: { legend: { display: false } }
+    }
+});
+
+// Time filter buttons
+['t7','t30','t90'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function () {
+        document.querySelectorAll('.time-option').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+</script>
+{% endblock %}
